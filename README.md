@@ -17,6 +17,8 @@ echo -e "\nAIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" >> .env
 ```
 
 ### 1.3 Initialize
+1. **NOTE:** These folders should be manually created. Otherwise, they will be automatically created and owned by `root`.
 ```
+mkdir ./dags ./logs ./plugins ./data
 docker-compose up airflow-init
 ```

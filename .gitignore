@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 
 # Airflow
-./logs
-./plugins
-./data
+logs
+plugins
+data

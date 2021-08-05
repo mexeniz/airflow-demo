@@ -11,13 +11,14 @@ from airflow.utils.dates import days_ago
 import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
-from sklearn.model_selection  import train_test_split
+from sklearn.model_selection import train_test_split
 
 DAG_NAME = "train_nearest_neighbor_model"
 DEFAULT_ARGS = {
     "data_url": "http://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
     "data_filename": "data.csv",
     "root_local_data_dir_path": "/data",
+    # Please note that root_output_model_dir_path won't be automatically created by Airflow.
     "root_output_model_dir_path": "/data/models",
     "n_neighbors" : 3,  # Runtime param
     "test_size": 0.3,
@@ -134,6 +135,7 @@ def train_model_func(**kwargs):
     print(f"Saving a model as a pickle file: output_model_path={output_model_path}")
     pickle.dump(model, open(output_model_path, "wb"))
 
+# NOTE: Change schedule_interval to schedule the pipeline; ex. "@hourly" or "@daily".
 with DAG(
     DAG_NAME,
     schedule_interval="@once",

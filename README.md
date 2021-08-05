@@ -67,4 +67,9 @@ docker-compose up -d
 
 ## 2 DAG
 ### 2.1 Training KNN Model
+- **NOTE:** A directory of root_output_model_dir_path (default: "/data/models") must be manually created.
+```
+mkdir ./data/models
+```
+- Screenshot
 ![Alt text](./screenshots/dag_train_knn_model.png?raw=true)

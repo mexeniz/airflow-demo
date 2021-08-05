@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import os
-from pandas.io.parsers import read_csv
+import pickle
 import requests
 
 from airflow import DAG
@@ -9,14 +9,17 @@ from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 
 import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection  import train_test_split
 
-DAG_NAME = "train_model"
+DAG_NAME = "train_nearest_neighbor_model"
 DEFAULT_ARGS = {
     "data_url": "http://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
     "data_filename": "data.csv",
     "root_local_data_dir_path": "/data",
     "root_output_model_dir_path": "/data/models",
+    "n_neighbors" : 3,  # Runtime param
     "test_size": 0.3,
     "random_seed": 404
 }
@@ -57,6 +60,11 @@ def preprocess_data_func(**kwargs):
     df = pd.read_csv(output_data_path)
     # Split dataframe for train and test datasets
     train_df, test_df = train_test_split(df, test_size=test_size, random_state=random_seed)
+    print(f"Total train dataset: {len(train_df)}")
+    print(f"Total test dataset: {len(test_df)}")
+    print(train_df.head(5))
+    print(test_df.head(5))
+
     # Save as a file for the next task
     train_output_data_path = os.path.join(local_data_dir_path, f"train_{data_filename}")
     train_df.to_csv(train_output_data_path)
@@ -72,12 +80,14 @@ def visualize_data_func(**kwargs):
     
     # TODO(M): Replace these with actual data visualization.
     # Simply print stat of each data.
-    train_df = read_csv(train_output_data_path)
+    train_df = pd.read_csv(train_output_data_path)
     print("Show stat of a train dataset.")
     print(train_df.info())
-    test_df = read_csv(test_output_data_path)
+    print(train_df.head(5))
+    test_df = pd.read_csv(test_output_data_path)
     print("Show stat of a test dataset.")
     print(test_df.info())
+    print(test_df.head(5))
 
 def train_model_func(**kwargs):
     data_filename = kwargs.get("data_filename")
@@ -87,12 +97,42 @@ def train_model_func(**kwargs):
     train_output_data_path = os.path.join(local_data_dir_path, f"train_{data_filename}")
     test_output_data_path = os.path.join(local_data_dir_path, f"test_{data_filename}")
     
-    print("Training.....")
+    # Load data from previous task.
+    train_df = pd.read_csv(train_output_data_path)
+    test_df = pd.read_csv(test_output_data_path)
+    # Assume that the last column is a label column.
+    cols = train_df.columns
+    feat_cols = cols[:-1]
+    label_col = cols[-1]
+    X_train, y_train = train_df[feat_cols], train_df[label_col]
+    X_test, y_test = test_df[feat_cols], test_df[label_col]
 
+    # Try to load model params from a JSON runtime config.
+    n_neighbors = kwargs['dag_run'].conf.get('n_neighbors')
+    if not n_neighbors or n_neighbors < 0:
+        # The config is not found or n_neighbors is not valid.
+        # Read n_neighbors from the DAG default args instead.
+        n_neighbors = kwargs.get('n_neighbors', 3)
+    print(f"Training KNN model: n_neighbors={n_neighbors}")
+    model = KNeighborsClassifier(n_neighbors=n_neighbors)
+    model.fit(X_train, y_train)
+
+    # Show evaluation result
+    preds = model.predict(X_test)
+    acc_score = accuracy_score(y_test, preds)
+    prf = precision_recall_fscore_support(y_test, preds)
+    conf_mat = confusion_matrix(y_test, preds)
+    print("**Model evaluation**")
+    print("confusion matrix:\n", conf_mat)
+    print(f"accuracy score: {acc_score}")
+    print(f"precision: {prf[0]}")
+    print(f"recall: {prf[1]}")
+    print(f"f1-score: {prf[2]}")
 
     model_filename = f"model_{dag_timestamp}.pkl"
     output_model_path = os.path.join(root_output_model_dir_path, model_filename)
     print(f"Saving a model as a pickle file: output_model_path={output_model_path}")
+    pickle.dump(model, open(output_model_path, "wb"))
 
 with DAG(
     DAG_NAME,

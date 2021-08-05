@@ -1,5 +1,5 @@
 # airflow-demo
-A showcase repository for Apache Airflow. The docker images of Airflow are based on https://airflow.apache.org/docs/apache-airflow/stable/start/docker.html. One DAG example of model training is provided for demonstration of XCOM feature and DAG parameters.
+A showcase repository for Apache Airflow. The docker images of Airflow are based on https://airflow.apache.org/docs/apache-airflow/stable/start/docker.html. One DAG example of KNN model training is provided for demonstration of XCOM feature and DAG parameters.
 
 ## 1 Installation
 

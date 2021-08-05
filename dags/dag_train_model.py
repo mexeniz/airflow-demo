@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 
 DAG_NAME = "train_nearest_neighbor_model"
 DEFAULT_ARGS = {
+    "retries": 1,
     "data_url": "http://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
     "data_filename": "data.csv",
     "root_local_data_dir_path": "/data",
